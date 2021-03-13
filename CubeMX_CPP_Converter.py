@@ -60,6 +60,7 @@ def GetExtensionSettings(project_path):
                     return
                 ind = ind + 1
 
+# Функция замены расширений файлов
 def ChangeFileExtensions(project_path):
     global currentExtension
     global newExtension
