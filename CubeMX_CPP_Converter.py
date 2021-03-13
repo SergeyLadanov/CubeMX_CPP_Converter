@@ -11,68 +11,75 @@ fileList = [
     "it"
 ]
 
-# Имя файла на основе которого определяется текущее расширение файлов
-fileMarker = fileList[0]
-
 # Массив заменяемых расширений
 fileExtensions = [
     ".c",
     ".cpp"
 ]
 
-
 # Текущий путь приложения
 path = os.path.realpath(os.path.dirname(sys.argv[0]))
-# Текущее расширение файлов
-currentExtension = "no_extension"
-# Новое расширение файлов
-newExtension = "no_extension"
 
-# Проверка необходимости замены расширения файла
-def IsNeedToChange(filename):
-    global currentExtension
-    global newExtension
-    global fileList
 
-    if not (filename.lower()).endswith(currentExtension):
+class ExtensionConverter(object):
+    """Класс конвертера расширения файлов"""
+
+    # Текущее расширение файлов
+    __CurrentExtension = "no_extension"
+    # Новое расширение файлов
+    __NewExtension = "no_extension"
+
+    def __init__(self, fileList, extensionList, directory):
+        """ Конструктор класса """
+        # Список файлов
+        self.__FileList = fileList
+        # Список расширений
+        self.__ExtensionList = extensionList
+        # Имя файла-маркера
+        self.__MarkerName = self.__FileList[0]
+        # Директория
+        self.__Directory = directory
+
+    def __IsNeedToChange(self, filename):
+        """ Метод проверки необходимости изменения расширения для текущего файла """
+        if not (filename.lower()).endswith(self.__CurrentExtension):
+            return False
+        
+        for item in self.__FileList:
+            if (filename.lower()).endswith(item + self.__CurrentExtension):
+                return True
+
         return False
-    
-    for item in fileList:
-        if (filename.lower()).endswith(item + currentExtension):
-            return True
 
-    return False
+    def __GetExtensionSettings(self, project_path):
+        """ Метод автоматического определения настроек конвертации """
+        for folderName, subfoldersName, fileNames in os.walk(project_path):
+            for fileName in fileNames:
+                ind = 0
+                for item in self.__ExtensionList:
+                    if (fileName.lower()).endswith(self.__MarkerName + item):
+                        self.__CurrentExtension = item
+                        self.__NewExtension = self.__ExtensionList[(ind + 1) % len(self.__ExtensionList)]
+                        return
+                    ind = ind + 1
 
+    def __ChangeFileExtensions(self, project_path):
+        """ Метод замены расширений файлов """
+        for folderName, subfoldersName, fileNames in os.walk(project_path):
+            for fileName in fileNames:
+                if (self.__IsNeedToChange(fileName)):
+                    source = folderName + '/' + fileName
+                    os.rename(source, os.path.join(folderName, (fileName[:-(len(self.__CurrentExtension))] + self.__NewExtension)))
 
-# Функция динамического определения текущего расширения файлов
-def GetExtensionSettings(project_path):
-    global currentExtension
-    global newExtension
-    global fileMarker
+    def Process(self):
+        """ Метод обработки файлов """
+        self.__GetExtensionSettings(self.__Directory)
+        self.__ChangeFileExtensions(self.__Directory)
 
-    for folderName, subfoldersName, fileNames in os.walk(project_path):
-        for fileName in fileNames:
-            ind = 0
-            for item in fileExtensions:
-                if (fileName.lower()).endswith(fileMarker + item):
-                    currentExtension = item
-                    newExtension = fileExtensions[(ind + 1) % len(fileExtensions)]
-                    return
-                ind = ind + 1
-
-# Функция замены расширений файлов
-def ChangeFileExtensions(project_path):
-    global currentExtension
-    global newExtension
-
-    for folderName, subfoldersName, fileNames in os.walk(project_path):
-        for fileName in fileNames:
-            if (IsNeedToChange(fileName)):
-                source = folderName + '/' + fileName
-                os.rename(source, os.path.join(folderName, (fileName[:-(len(currentExtension))] + newExtension)))
 
 # Выполнение программы
-GetExtensionSettings(path)
-ChangeFileExtensions(path)
-
-print('Выполнено')
+if __name__ == '__main__':
+    # Экземпляр класса
+    converter = ExtensionConverter(fileList, fileExtensions, path)
+    converter.Process()
+    print('Выполнено')
