@@ -8,7 +8,7 @@ import os, sys, time
 # Имена/окончания заменяемых файлов (без расширения)
 fileList = [
     "main", # Это имя используется в качестве маркера для динамического определения текущего расширения
-    "it"
+    "*it"
 ]
 
 # Массив заменяемых расширений
@@ -46,8 +46,16 @@ class ExtensionConverter(object):
             return False
         
         for item in self.__FileList:
-            if (filename.lower()).endswith(item + self.__CurrentExtension):
-                return True
+            if (item.find("*") == 0):
+                item = item[1:]
+                if (filename.lower()).endswith(item + self.__CurrentExtension):
+                    return True
+            else:
+                if filename.lower() == (item + self.__CurrentExtension):
+                    return True
+
+
+            
 
         return False
 
@@ -57,10 +65,16 @@ class ExtensionConverter(object):
             for fileName in fileNames:
                 ind = 0
                 for item in self.__ExtensionList:
-                    if (fileName.lower()).endswith(self.__MarkerName + item):
-                        self.__CurrentExtension = item
-                        self.__NewExtension = self.__ExtensionList[(ind + 1) % len(self.__ExtensionList)]
-                        return
+                    if self.__MarkerName.find("*") == 0:
+                        if (fileName.lower()).endswith(self.__MarkerName + item):
+                            self.__CurrentExtension = item
+                            self.__NewExtension = self.__ExtensionList[(ind + 1) % len(self.__ExtensionList)]
+                            return
+                    else:
+                        if fileName.lower() == (self.__MarkerName + item):
+                            self.__CurrentExtension = item
+                            self.__NewExtension = self.__ExtensionList[(ind + 1) % len(self.__ExtensionList)]
+                            return
                     ind = ind + 1
 
     def __ChangeFileExtensions(self, project_path):
