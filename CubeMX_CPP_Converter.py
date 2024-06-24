@@ -17,6 +17,9 @@ fileExtensions = [
     ".cpp"
 ]
 
+# Путь к файлу со списком исходниов (для изменения расширения указанных файлов в списке)
+sourceListFile = ""
+
 # Текущий путь приложения
 path = os.path.realpath(os.path.dirname(sys.argv[0]))
 
@@ -29,7 +32,10 @@ class ExtensionConverter(object):
     # Новое расширение файлов
     __NewExtension = "no_extension"
 
-    def __init__(self, fileList, extensionList, directory):
+    # Файл со списком исходников
+    __SourceListFile = ""
+
+    def __init__(self, fileList, extensionList, directory, listfile):
         """ Конструктор класса """
         # Список файлов
         self.__FileList = fileList
@@ -39,6 +45,8 @@ class ExtensionConverter(object):
         self.__MarkerName = self.__FileList[0]
         # Директория
         self.__Directory = directory
+
+        self.__SourceListFile = listfile
 
     def __IsNeedToChange(self, filename):
         """ Метод проверки необходимости изменения расширения для текущего файла """
@@ -83,6 +91,21 @@ class ExtensionConverter(object):
             for fileName in fileNames:
                 if (self.__IsNeedToChange(fileName)):
                     source = folderName + '/' + fileName
+                    if self.__SourceListFile != "":
+                        self.__SourceListFile = os.path.join(path, self.__SourceListFile)
+                        current_name = fileName
+                        new_name = (fileName[:-(len(self.__CurrentExtension))] + self.__NewExtension)
+                        head, tail = os.path.split(folderName)
+
+                        with open (self.__SourceListFile, 'r') as f:
+                            old_data = f.read()
+
+                        new_data = old_data.replace(f'{tail}/{current_name}', f'{tail}/{new_name}')
+
+                        with open (self.__SourceListFile, 'w') as f:
+                            f.write(new_data)
+
+
                     os.rename(source, os.path.join(folderName, (fileName[:-(len(self.__CurrentExtension))] + self.__NewExtension)))
 
     def Process(self):
@@ -94,6 +117,6 @@ class ExtensionConverter(object):
 # Выполнение программы
 if __name__ == '__main__':
     # Экземпляр класса
-    converter = ExtensionConverter(fileList, fileExtensions, path)
+    converter = ExtensionConverter(fileList, fileExtensions, path, sourceListFile)
     converter.Process()
     print('Выполнено')
