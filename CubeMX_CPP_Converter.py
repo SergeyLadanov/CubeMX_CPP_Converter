@@ -4,6 +4,7 @@
 # Скрипт размещается в каталоге с проектом
 
 import os, sys, time
+import re
 
 # Имена/окончания заменяемых файлов (без расширения)
 fileList = [
@@ -42,7 +43,7 @@ class ExtensionConverter(object):
         # Список расширений
         self.__ExtensionList = extensionList
         # Имя файла-маркера
-        self.__MarkerName = self.__FileList[0]
+        self.__MarkerName = self.__FileList[0].replace("*", ".*").lower()
         # Директория
         self.__Directory = directory
 
@@ -54,17 +55,10 @@ class ExtensionConverter(object):
             return False
         
         for item in self.__FileList:
-            if (item.find("*") == 0):
-                item = item[1:]
-                if (filename.lower()).endswith(item + self.__CurrentExtension):
-                    return True
-            else:
-                if filename.lower() == (item + self.__CurrentExtension):
-                    return True
+            pattern = fr'{item.replace("*", ".*").lower()}{self.__CurrentExtension}$'
 
-
-            
-
+            if re.search(pattern, filename.lower()):
+                return True
         return False
 
     def __GetExtensionSettings(self, project_path):
@@ -72,25 +66,23 @@ class ExtensionConverter(object):
         for folderName, subfoldersName, fileNames in os.walk(project_path):
             for fileName in fileNames:
                 ind = 0
+                fileName = folderName + '/' + fileName
+                fileName = fileName.replace('\\', '/')
                 for item in self.__ExtensionList:
-                    if self.__MarkerName.find("*") == 0:
-                        if (fileName.lower()).endswith(self.__MarkerName + item):
-                            self.__CurrentExtension = item
-                            self.__NewExtension = self.__ExtensionList[(ind + 1) % len(self.__ExtensionList)]
-                            return
-                    else:
-                        if fileName.lower() == (self.__MarkerName + item):
-                            self.__CurrentExtension = item
-                            self.__NewExtension = self.__ExtensionList[(ind + 1) % len(self.__ExtensionList)]
-                            return
+                    pattern = fr'{self.__MarkerName}{item}$'
+                    if re.search(pattern, fileName.lower()):
+                        self.__CurrentExtension = item
+                        self.__NewExtension = self.__ExtensionList[(ind + 1) % len(self.__ExtensionList)]
                     ind = ind + 1
+
 
     def __ChangeFileExtensions(self, project_path):
         """ Метод замены расширений файлов """
         for folderName, subfoldersName, fileNames in os.walk(project_path):
             for fileName in fileNames:
-                if (self.__IsNeedToChange(fileName)):
-                    source = folderName + '/' + fileName
+                source = folderName + '/' + fileName
+                source = source.replace('\\', '/')
+                if (self.__IsNeedToChange(source)):
                     if self.__SourceListFile != "":
                         self.__SourceListFile = os.path.join(path, self.__SourceListFile)
                         current_name = fileName
@@ -100,11 +92,10 @@ class ExtensionConverter(object):
                         with open (self.__SourceListFile, 'r') as f:
                             old_data = f.read()
 
-                        new_data = old_data.replace(f'{tail}/{current_name}', f'{tail}/{new_name}')
+                        new_data = old_data.replace(f'{tail}/{current_name}\n', f'{tail}/{new_name}\n')
 
                         with open (self.__SourceListFile, 'w') as f:
                             f.write(new_data)
-
 
                     os.rename(source, os.path.join(folderName, (fileName[:-(len(self.__CurrentExtension))] + self.__NewExtension)))
 
